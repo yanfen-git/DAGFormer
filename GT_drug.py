@@ -17,7 +17,6 @@ class GT(nn.Module):
         if self.training:
             std = torch.exp(logvar)
             eps = torch.randn_like(std)
-            # 添加小常数避免除以零
             std = std + 1e-12
             z = eps.mul(std).add_(mu)
             if torch.isnan(z).any():
@@ -27,7 +26,6 @@ class GT(nn.Module):
             return mu
 
     def forward(self, g, features):
-
         with g.local_scope():
             x = self.gc1(g, features)
             x = F.normalize(x)
@@ -39,9 +37,7 @@ class GT(nn.Module):
             y1 = self.gc3(g, x)
             y1 = F.normalize(y1)
 
-
             z = self.reparameterize(x1, y1)
-
 
             return z, x1, y1
 
