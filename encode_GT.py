@@ -36,7 +36,6 @@ class GCNModelVAE(nn.Module):
         if self.training:
             std = torch.exp(logvar)
             eps = torch.randn_like(std)
-            # 添加小常数避免除以零
             std = std + 1e-12
             z = eps.mul(std).add_(mu)
 
@@ -60,7 +59,6 @@ class GCNModelVAE(nn.Module):
 
 class InnerProductDecoder(nn.Module):
     """Decoder for using inner product for prediction."""
-    # 解码器模块，它使用内积来预测邻接矩阵，通常用于图生成或重构任务。
     def __init__(self, dropout, act=torch.sigmoid):
         super(InnerProductDecoder, self).__init__()
         self.dropout = dropout
@@ -69,4 +67,5 @@ class InnerProductDecoder(nn.Module):
     def forward(self, z):
         z = F.dropout(z, self.dropout, training=self.training)
         adj = self.act(torch.mm(z, z.t()))
+
         return adj
