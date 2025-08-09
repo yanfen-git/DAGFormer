@@ -56,10 +56,20 @@ cudnn.benchmark = True
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 manual_seed = random.randint(1, 10000)
+# 9865
+# manual_seed = 40
 print("manual_seed:", manual_seed)
 random.seed(manual_seed)
 torch.manual_seed(manual_seed)
 
+# # 要测试的k值
+# k_values = [3, 5, 10, 15]
+# for k in k_values:
+#     print(f"Running model with k = {k}")
+#
+#     # 重新加载数据，使用当前的k值
+#     adj_s, features_s, labels_s, knn_s, n_features_s = load_data_drug('source', DRUG, k)
+#     adj_t, features_t, labels_t, knn_t, n_features_t = load_data_drug('target', DRUG, k)
 
 ''' Load data '''
 adj_s, features_s, labels_s, knn_s, n_features_s = load_data_drug('source', DRUG)
@@ -112,33 +122,27 @@ def test(adj,feature, label):  # def test(feature, adj, ppmi, label):
     logits = predict(adj,feature)   # logits = predict(feature, adj, ppmi)
     labels = label
     accuracy = evaluate(logits, labels)
-    # 将logits转换为概率
     logits_proba = F.softmax(logits, dim=1).cpu().detach().numpy()
-    preds = logits_proba.argmax(axis=1)  # 获取预测的标签
+    preds = logits_proba.argmax(axis=1)
     labels_np = labels.cpu().detach().numpy()
 
-    # 打印调试信息
-    if np.isnan(logits_proba).any():
-        print("NaN detected in logits_proba")
-    if np.isnan(labels_np).any():
-        print("NaN detected in labels_np")
 
-    # 计算混淆矩阵
+
     cm = confusion_matrix(labels_np, preds)
-    tn, fp, fn, tp = cm.ravel()  # 将混淆矩阵展开成TN, FP, FN, TP
+    tn, fp, fn, tp = cm.ravel()
 
-    # # 打印结果
+    # # PRINT RESULT
     # print(f"Confusion Matrix:\n{cm}")
     # print(f"True Positives (TP): {tp}")
     # print(f"False Positives (FP): {fp}")
     # print(f"True Negatives (TN): {tn}")
     # print(f"False Negatives (FN): {fn}")
 
-    # 计算AUC
-    auc = roc_auc_score(labels_np, logits_proba[:, 1])  # 使用第二列的概率值
+    # AUC
+    auc = roc_auc_score(labels_np, logits_proba[:, 1])
 
-    # 计算AUPR
-    aupr = average_precision_score(labels_np, logits_proba[:, 1])  # 使用第二列的概率值
+    # AUPR
+    aupr = average_precision_score(labels_np, logits_proba[:, 1])
     return accuracy, auc, aupr
 
 
@@ -185,14 +189,14 @@ def recon_loss(preds, labels, mu, logvar, n_nodes, norm, pos_weight):
     KLD = -0.5 / n_nodes * torch.mean(torch.sum(
         1 + 2 * logvar - mu.pow(2) - logvar.exp().pow(2), 1))
     if cost + KLD < 0 :
-        print("重构损失出现负数！！！！")
+        print("recon_loss is negative！！！！")
     if torch.isnan(cost).any():
         print("NaN detected in cost ")
     if torch.isnan(KLD).any():
         print("NaN detected in KLD")
     return cost + KLD
 
-# 检查数据是否包含 NaN
+
 def check_for_nan(tensor, name):
     if torch.isnan(tensor).any():
         print(f"NaN detected in {name}")
@@ -204,33 +208,29 @@ domain_loss = torch.nn.NLLLoss()
 
 
 ''' load model '''
-''' private encoder/encoder for S/T (including Local GCN and Global GCN) '''
-# 局部图结构的私有编码器
+''' private encoder/encoder for S/T'''
+
 private_encoder_s = GCNModelVAE(input_feat_dim=args.nfeat, hidden_dim1=args.hidden, hidden_dim2=args.gfeat,
                                   dropout=args.dropout).to(device)
 private_encoder_t = GCNModelVAE(input_feat_dim=args.nfeat, hidden_dim1=args.hidden, hidden_dim2=args.gfeat,
                                   dropout=args.dropout).to(device)
 
-
-# 初始化了两个解码器 decoder_s 用于源域，decoder_t 用于目标域。使用内积解码器结构
+''' decoder'''
 decoder_s = InnerProductDecoder(dropout=args.dropout, act=lambda x: x)
 decoder_t = InnerProductDecoder(dropout=args.dropout, act=lambda x: x)
 
-''' shared encoder (including Local GCN and Global GCN) '''
+''' shared encoder '''
 shared_encoder = GT(nfeat=args.nfeat, nhid=args.hidden, nclass=args.gfeat, dropout=args.dropout).to(device)
 
 
 
 ''' node classifier model '''
-# 一个简单的全连接神经网络，只有一层线性层，将输入的args.gfeat维特征映射到2个类别（即二分类问题）
+
 cls_model = nn.Sequential(
     nn.Linear(args.gfeat, 2),
 ).to(device)
 
 ''' domain discriminator model '''
-# 域分类器模型  GRL() 是一个自定义的梯度反转层，用于对抗训练
-# 后续是一个包含两层线性层、ReLU激活函数和dropout层的神经网络。
-# 第一个线性层将输入的args.gfeat维特征映射到10维，第二个线性层将10维映射到2个类别（即二分类问题）。
 domain_model = nn.Sequential(
     GRL(),
     nn.Linear(args.gfeat, 10),
@@ -240,14 +240,14 @@ domain_model = nn.Sequential(
 ).to(device)
 
 
-''' the set of models used in ASN '''
+''' the set of models used in DAGFormer '''
 models = [private_encoder_s, private_encoder_t, shared_encoder, cls_model, domain_model, decoder_s, decoder_t]
 params = itertools.chain(*[model.parameters() for model in models])
 
 ''' setup optimizer '''
 optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=5e-4)
 
-# 定义保存模型的函数
+
 def save_model(model, filename):
     torch.save(model.state_dict(), filename)
 
@@ -267,6 +267,10 @@ aupr_t_list = []
 losses=[]
 
 for epoch in range(args.n_epoch):
+    embedding_dir = f"./embedding/{args.drug_name}/epoch_{epoch}"
+    if not os.path.exists(embedding_dir):
+        os.makedirs(embedding_dir)
+
 
     len_dataloader = min(labels_s.shape[0], labels_t.shape[0])
     global rate
@@ -277,35 +281,26 @@ for epoch in range(args.n_epoch):
     optimizer.zero_grad()
 
     if cuda:
+        # adj_s = adj_s.cuda()
+        # adj_t = adj_t.cuda()
+        # labels_s = labels_s.cuda()
+        # labels_t = labels_t.cuda()
+        # X_n_s = X_n_s.cuda()
+        # X_n_t = X_n_t.cuda()
+        # features_s = features_s.cuda()
+        # features_t = features_t.cuda()
         adj_label_s = adj_label_s.cuda()
         adj_label_t = adj_label_t.cuda()
         pos_weight_s = pos_weight_s.cuda()
         pos_weight_t = pos_weight_t.cuda()
 
-    # 将源域（s）和目标域（t）的特征（features_s, features_t）以及邻接矩阵（adj_s, adj_t）输入到对应的私有编码器中，得到编码后的隐变量均值（mu）和方差（logvar）以及重构后的特征（recovered）。
+    # S and T 's feature（features_s, features_t）以及graph（adj_s, adj_t）into private encoder，get mu , logvar, recovered feature。
     H_s_pr, mu_s, logvar_s = private_encoder_s(features_s, adj_s)
     H_t_pr, mu_t, logvar_t = private_encoder_t(features_t, adj_t)
 
-    # 检查是否包含 NaN
-    check_for_nan(H_s_pr, "H_s_pr")
-    check_for_nan(mu_s, "mu_s")
-    check_for_nan(logvar_s, "logvar_s")
-    check_for_nan(H_t_pr, "H_t_pr")
-    check_for_nan(mu_t, "mu_t")
-    check_for_nan(logvar_t, "logvar_t")
 
-
-    # 确保传递DGLGraph对象
     H_s_sh, shared_encoded_source1, shared_encoded_source2 = shared_encoder(adj_s, features_s)
     H_t_sh, shared_encoded_target1, shared_encoded_target2 = shared_encoder(adj_t, features_t)
-
-    # 检查是否包含 NaN
-    check_for_nan(H_s_sh, "H_s_sh")
-    check_for_nan(shared_encoded_source1, "shared_encoded_source1")
-    check_for_nan(shared_encoded_source2, "shared_encoded_source2")
-    check_for_nan(H_t_sh, "H_t_sh")
-    check_for_nan(shared_encoded_target1, "shared_encoded_target1")
-    check_for_nan(shared_encoded_target2, "shared_encoded_target2")
 
 
     ''' compute encoder difference loss for S and T '''
@@ -330,7 +325,7 @@ for epoch in range(args.n_epoch):
                               norm=norm_t, pos_weight=pos_weight_t)
     recon_loss_all = recon_loss_s + recon_loss_t
 
-    ''' compute node classification loss for S '''
+    ''' compute drug predictor loss for S '''
     source_logits = cls_model(shared_encoded_source1)
     cls_loss_source = cls_loss(source_logits, labels_s)
     source_acc = evaluate(source_logits, labels_s)
@@ -358,6 +353,30 @@ for epoch in range(args.n_epoch):
     loss.backward()
     optimizer.step()
 
+    if epoch == args.n_epoch - 1 or True:
+        save_dir = f"./pri_share_embed/{DRUG}"
+        os.makedirs(save_dir, exist_ok=True)
+
+        # embedding to numpy
+        H_s_pr_np = H_s_pr.detach().cpu().numpy()
+        H_t_pr_np = H_t_pr.detach().cpu().numpy()
+        H_s_sh_np = H_s_sh.detach().cpu().numpy()
+        H_t_sh_np = H_t_sh.detach().cpu().numpy()
+
+        domain_s_np = domain_labels_s.cpu().numpy()
+        domain_t_np = domain_labels_t.cpu().numpy()
+
+        # construct DataFrame  and preserve private encoder
+        df_private = pd.DataFrame(np.vstack([H_s_pr_np, H_t_pr_np]))
+        df_private['domain'] = np.concatenate([domain_s_np, domain_t_np])
+        df_private.to_csv(f"./pri_share_embed/{DRUG}/epoch_{epoch}_private_domain.csv", index=False)
+
+        # construct DataFrame  and preserve shared encoder
+        df_shared = pd.DataFrame(np.vstack([H_s_sh_np, H_t_sh_np]))
+        df_shared['domain'] = np.concatenate([domain_s_np, domain_t_np])
+        df_shared.to_csv(f"./pri_share_embed/{DRUG}/epoch_{epoch}_shared_domain.csv", index=False)
+
+        print("the data preserved {pri_share_embed}/")
 
     if (epoch + 1) % 1 == 0:
         # Inside the training loop:
@@ -412,4 +431,24 @@ for epoch in range(args.n_epoch):
                 args.lambda_r * recon_loss_all.item(),
                 args.lambda_f * diff_loss_all.item()])
 
+# import pandas as pd
+# pd.DataFrame(losses).to_csv("loss.csv")
+# if acc_t_list:
+#     average_acc_t = sum(acc_t_list) / len(acc_t_list)
+#     average_auc_t = sum(auc_t_list) / len(auc_t_list)
+#     average_aupr_t = sum(aupr_t_list) / len(aupr_t_list)
+#     print('Average target accuracy:', average_acc_t)
+#     print('Average target AUC:', average_auc_t)
+#     print('Average target AUPR:', average_aupr_t)
+# else:
+#     print('No target accuracies to average')
+# print('source best acc :{}'.format(best_acc_s))
+# print('source best AUC :{}'.format(best_auc_s))
+# print('source best AUPR :{}'.format(best_aupr_s))
+# print('target best acc :{}'.format(best_acc_t))
+# print('target best AUC :{}'.format(best_auc_t))
+# print('target best AUPR :{}'.format(best_aupr_t))
+# print('done')
+# print('lr:{},d:{},r:{},f:{}'.format(args.lr, args.lambda_d, args.lambda_r,
+#                                     args.lambda_f))
 
