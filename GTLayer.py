@@ -65,11 +65,10 @@ class GTLayer(nn.Module):
 
 
     def forward(self, A, h):
-        # 确保 A 是张量
         if isinstance(A, dgl.DGLGraph):
-            A = A.adj().to_dense()  # 将 DGLGraph 转换为稠密张量
+            A = A.adj().to_dense()  
         if isinstance(A, torch.Tensor):
-            A = A.to(h.device)  # 确保 A 和 h 在同一个设备上
+            A = A.to(h.device)  
         # attention-layer
         h1 = h
         h = self.MHA(A, h)
@@ -91,10 +90,9 @@ class GTLayer(nn.Module):
 class GraphTransformer(nn.Module):
     def __init__(self, in_feat, hidden_dim, num_heads, num_layers, dropout=0.1):
         super(GraphTransformer, self).__init__()
-        # 调整 hidden_dim1 以确保它可以被 num_heads 整除
         if hidden_dim % num_heads != 0:
             hidden_dim += (num_heads - hidden_dim % num_heads)
-        self.input_proj = nn.Linear(in_feat, hidden_dim)  # 添加一个输入映射层
+        self.input_proj = nn.Linear(in_feat, hidden_dim)  
         self.dropout = nn.Dropout(dropout)
         self.layers = nn.ModuleList([
             GTLayer(hidden_dim, num_heads, bias=False)
@@ -122,20 +120,6 @@ class GraphTransformer(nn.Module):
         return h
 
 
-# DRUG = 'Gefitinib'
-# adj_s, features_s, labels_s, knn_s, n_features_s = load_data_drug('source', DRUG)
-#     # 修改模型初始化部分
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# model = GraphTransformer(in_feat=n_features_s, hidden_dim=256, num_heads=4, num_layers=3).to(device)
-# # 将模型转移到合适的设备上
-# model.to(device)
-#
-# # 将数据转移到GPU上
-# features = features_s.to(device)
-# A = adj_s.to(device)
-# labels = labels_s.to(device)
-#
-# A = A.adj().to_dense().to(device)
-# # 使用图和特征调用模型
-# output = model(A, features)
+
+
 
