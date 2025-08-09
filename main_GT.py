@@ -16,7 +16,7 @@ import torch.utils.data
 import argparse
 import warnings
 from sklearn.metrics import roc_auc_score, average_precision_score
-from sklearn.metrics import confusion_matrix  # 导入混淆矩阵函数
+from sklearn.metrics import confusion_matrix  
 
 
 warnings.filterwarnings('ignore')
@@ -56,18 +56,16 @@ cudnn.benchmark = True
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 manual_seed = random.randint(1, 10000)
-# 9865
-# manual_seed = 40
 print("manual_seed:", manual_seed)
 random.seed(manual_seed)
 torch.manual_seed(manual_seed)
 
-# # 要测试的k值
+# # test k
 # k_values = [3, 5, 10, 15]
 # for k in k_values:
 #     print(f"Running model with k = {k}")
 #
-#     # 重新加载数据，使用当前的k值
+#     
 #     adj_s, features_s, labels_s, knn_s, n_features_s = load_data_drug('source', DRUG, k)
 #     adj_t, features_t, labels_t, knn_t, n_features_t = load_data_drug('target', DRUG, k)
 
@@ -75,11 +73,11 @@ torch.manual_seed(manual_seed)
 adj_s, features_s, labels_s, knn_s, n_features_s = load_data_drug('source', DRUG)
 adj_t, features_t, labels_t, knn_t, n_features_t= load_data_drug('target', DRUG)
 
-# 为源域和目标域打域标签（0: source, 1: target）
+# 0: source, 1: target
 domain_labels_s = torch.zeros(features_s.shape[0], dtype=torch.long).to(device)
 domain_labels_t = torch.ones(features_t.shape[0], dtype=torch.long).to(device)
 
-# 将图和特征移动到相同设备
+
 adj_s = adj_s.to(device)
 features_s = features_s.to(device)
 labels_s = labels_s.to(device)
@@ -88,13 +86,13 @@ adj_t = adj_t.to(device)
 features_t = features_t.to(device)
 labels_t = labels_t.to(device)
 
-# 将特征和标签添加到图中
+
 adj_s.ndata['feat'] = features_s
 adj_s.ndata['label'] = labels_s
 adj_t.ndata['feat'] = features_t
 adj_t.ndata['label'] = labels_t
 
-# 动态调整nfeat参数
+
 args.nfeat = n_features_s
 
 ''' Load adj labels for reconstruction '''
