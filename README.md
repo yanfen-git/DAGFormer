@@ -22,20 +22,9 @@ The original and preprocessed datasets can be found at:
 
 
 ## Requirements
-- matplotlib==3.1.1  
-- ipdb==0.12.3  
-- torch==1.7.1  
-- torchvision==0.8.2  
-- numpy==1.21.0  
+- numpy>=1.24  
 - scipy==1.7.3  
-- texttable==1.6.2  
-- networkx==2.4  
-- numba==0.48.0  
-- Pillow==7.0.0  
-- scikit-learn==0.22.1  
-- tensorboardX==2.0  
-- tqdm==4.42.1  
-- gensim==3.8.3  
+- scikit-learn>=1.3  
 - torch-geometric==2.6.1  
 - torch-scatter==2.1.2+pt24cu121  
 - torch-sparse==0.6.18+pt24cu121  
