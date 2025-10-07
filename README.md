@@ -22,23 +22,23 @@ The original and preprocessed datasets can be found at:
 
 
 ## Requirements
-matplotlib==3.1.1
-ipdb==0.12.3
-torch==1.7.1
-torchvision==0.8.2
-numpy==1.21.0
-scipy==1.7.3
-texttable==1.6.2
-networkx==2.4
-numba==0.48.0
-Pillow==7.0.0
-scikit-learn==0.22.1
-tensorboardX==2.0
-tqdm==4.42.1
-gensim==3.8.3
-torch-geometric==2.6.1
-torch-scatter==2.1.2+pt24cu121
-torch-sparse==0.6.18+pt24cu121
+- matplotlib==3.1.1  
+- ipdb==0.12.3  
+- torch==1.7.1  
+- torchvision==0.8.2  
+- numpy==1.21.0  
+- scipy==1.7.3  
+- texttable==1.6.2  
+- networkx==2.4  
+- numba==0.48.0  
+- Pillow==7.0.0  
+- scikit-learn==0.22.1  
+- tensorboardX==2.0  
+- tqdm==4.42.1  
+- gensim==3.8.3  
+- torch-geometric==2.6.1  
+- torch-scatter==2.1.2+pt24cu121  
+- torch-sparse==0.6.18+pt24cu121  
 
 ## Computational environment
 Experiments were conducted on a workstation equipped with one NVIDIA GeForce RTX 3090 GPU (24 GB VRAM), Intel Xeon 16-core CPU, and 128 GB RAM, running Ubuntu 22.04 LTS with CUDA 12.1 and cuDNN 8.9.
