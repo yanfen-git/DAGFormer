@@ -440,13 +440,13 @@ for epoch in range(args.n_epoch):
 #     print('Average target AUPR:', average_aupr_t)
 # else:
 #     print('No target accuracies to average')
-# print('source best acc :{}'.format(best_acc_s))
-# print('source best AUC :{}'.format(best_auc_s))
-# print('source best AUPR :{}'.format(best_aupr_s))
-# print('target best acc :{}'.format(best_acc_t))
-# print('target best AUC :{}'.format(best_auc_t))
-# print('target best AUPR :{}'.format(best_aupr_t))
-# print('done')
-# print('lr:{},d:{},r:{},f:{}'.format(args.lr, args.lambda_d, args.lambda_r,
-#                                     args.lambda_f))
+print('source best acc :{}'.format(best_acc_s))
+print('source best AUC :{}'.format(best_auc_s))
+print('source best AUPR :{}'.format(best_aupr_s))
+print('target best acc :{}'.format(best_acc_t))
+print('target best AUC :{}'.format(best_auc_t))
+print('target best AUPR :{}'.format(best_aupr_t))
+print('done')
+print('lr:{},d:{},r:{},f:{}'.format(args.lr, args.lambda_d, args.lambda_r,
+                                    args.lambda_f))
 
