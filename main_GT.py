@@ -40,7 +40,7 @@ parser.add_argument('--lambda_d', type=float, default=1.0,
                     help='hyperparameter for domain loss')
 parser.add_argument('--lambda_r', type=float, default=0.3,
                     help='hyperparameter for reconstruction loss')
-parser.add_argument('--lambda_f', type=float, default=0.0001,
+parser.add_argument('--lambda_f', type=float, default=0.001,
                     help='hyperparameter for different loss')
 parser.add_argument('--early-stopping', type=bool, default=False, help='Enable early stopping')
 parser.add_argument('--patience', type=int, default=15, help='Patience for early stopping')
