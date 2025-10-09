@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-LightGBM 仅模型对比脚本（Source 训练 -> Target 测试）
-数据目录示例：
-/home/dbt8211210813/scAdaDrug/datasets/data/AR-42/Source_exprs_resp_z_AR-42.tsv
-/home/dbt8211210813/scAdaDrug/datasets/data/AR-42/Target_exprs_resp_z_AR-42.tsv
-"""
+
 
 import os
 import sys
@@ -30,7 +25,7 @@ from lightgbm import early_stopping, log_evaluation
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # ---------- 基本配置 ----------
-DEFAULT_BASE = "/home/dbt8211210813/scAdaDrug/datasets/data"
+DEFAULT_BASE = "/home/scAdaDrug/datasets/data"
 DRUGS_ALL = [
     "AR-42",
     "Afatinib",
@@ -62,7 +57,6 @@ def safe_aupr(y_true, proba1):
 
 
 def compute_metrics(y_true, y_prob):
-    """y_prob: (N,2) 或 (N,) 为正类概率"""
     y_true = np.asarray(y_true).astype(int)
     proba1 = y_prob[:, 1] if y_prob.ndim == 2 else y_prob
     y_pred = (proba1 >= 0.5).astype(int)
@@ -87,14 +81,6 @@ def read_tsv(path: str) -> pd.DataFrame:
 
 
 def load_source_target(base_dir: str, drug: str):
-    """
-    返回：
-      X_s, y_s, X_t, y_t, colnames
-    操作：
-      1) 读取 Source/Target
-      2) 以列名取交集对齐
-      3) 所有特征强制转 float，无法转换的用该列中位数填补
-    """
     ddir = Path(base_dir) / drug
     src = ddir / f"Source_exprs_resp_z.{drug}.tsv"
     tgt = ddir / f"Target_expr_resp_z.{drug}.tsv"
@@ -170,9 +156,6 @@ def load_source_target(base_dir: str, drug: str):
 
 
 def make_lgbm(scale_pos_weight=None, eval_metric="aucpr"):
-    """
-    构建更稳健的 LightGBM；以 AUPR 为主优化目标（metric='aucpr'）。
-    """
     return LGBMClassifier(
         n_estimators=1000,
         learning_rate=0.03,
