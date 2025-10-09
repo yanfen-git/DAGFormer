@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-XGBoost 仅模型对比脚本（Source 训练 -> Target 测试）
-数据目录示例：
-/home/dbt8211210813/scAdaDrug/datasets/data/AR-42/Source_exprs_resp_z_AR-42.tsv
-/home/dbt8211210813/scAdaDrug/datasets/data/AR-42/Target_exprs_resp_z_AR-42.tsv
+XGBoost 模型对比
 """
 
 import os
@@ -29,7 +26,7 @@ from xgboost import XGBClassifier
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # ---------- 基本配置 ----------
-DEFAULT_BASE = "/home/dbt8211210813/scAdaDrug/datasets/data"
+DEFAULT_BASE = "/home/datasets/data"
 DRUGS_ALL = [
     "AR-42",
     "Afatinib",
@@ -61,7 +58,6 @@ def safe_aupr(y_true, proba1):
 
 
 def compute_metrics(y_true, y_prob):
-    """y_prob: (N,2) 或 (N,) 为正类概率"""
     y_true = np.asarray(y_true).astype(int)
     proba1 = y_prob[:, 1] if y_prob.ndim == 2 else y_prob
     y_pred = (proba1 >= 0.5).astype(int)
@@ -86,14 +82,6 @@ def read_tsv(path: str) -> pd.DataFrame:
 
 
 def load_source_target(base_dir: str, drug: str):
-    """
-    返回：
-      X_s, y_s, X_t, y_t, colnames
-    操作：
-      1) 读取 Source/Target
-      2) 以列名取交集对齐
-      3) 所有特征强制转 float，无法转换的用该列中位数填补
-    """
     ddir = Path(base_dir) / drug
     src = ddir / f"Source_exprs_resp_z.{drug}.tsv"
     tgt = ddir / f"Target_expr_resp_z.{drug}.tsv"
@@ -106,7 +94,7 @@ def load_source_target(base_dir: str, drug: str):
     df_s = read_tsv(str(src))
     df_t = read_tsv(str(tgt))
 
-    # 若有多余索引列，处理掉
+
     drop_unnamed = [c for c in df_s.columns if str(c).startswith("Unnamed")]
     if drop_unnamed:
         df_s = df_s.drop(columns=drop_unnamed, errors="ignore")
@@ -124,7 +112,7 @@ def load_source_target(base_dir: str, drug: str):
     Xs_df = df_s.drop(columns=[ycol_s])
     Xt_df = df_t.drop(columns=[ycol_t])
 
-    # —— 对齐特征列（交集）——
+
     common_cols = sorted(list(set(Xs_df.columns).intersection(set(Xt_df.columns))))
     if len(common_cols) == 0:
         raise ValueError(f"{drug}: Source/Target 没有共同特征列，请检查表头")
@@ -133,21 +121,19 @@ def load_source_target(base_dir: str, drug: str):
               f"(Source:{Xs_df.shape[1]} Target:{Xt_df.shape[1]})")
     Xs_df = Xs_df[common_cols].copy()
     Xt_df = Xt_df[common_cols].copy()
-
-    # —— 强制转数值 & 填补 ——（关键修复）
-    conv_cols = []
+   conv_cols = []
     fill_info = []
 
     for col in common_cols:
-        # 先尝试一次是否全是数值型
+
         if not np.issubdtype(Xs_df[col].dtype, np.number) or not np.issubdtype(Xt_df[col].dtype, np.number):
             conv_cols.append(col)
 
-        # 两边都转成 numeric；无法转的变成 NaN
+
         Xs_df[col] = pd.to_numeric(Xs_df[col], errors="coerce")
         Xt_df[col] = pd.to_numeric(Xt_df[col], errors="coerce")
 
-        # 用 Source 该列的中位数填补（若全 NaN 则用 0）
+
         median = np.nanmedian(Xs_df[col].values)
         if np.isnan(median):
             median = 0.0
@@ -196,7 +182,6 @@ def make_xgb(scale_pos_weight=None, eval_metric="aucpr"):
 
 def fit_with_early_stop(model, X_tr, y_tr, X_val, y_val, allow_early_stop=True):
     """
-    尝试：
     1) sklearn API 的 early_stopping_rounds
     2) callbacks.EarlyStopping
     3) 无早停（兜底）
@@ -228,7 +213,6 @@ def fit_with_early_stop(model, X_tr, y_tr, X_val, y_val, allow_early_stop=True):
         )
         return "es_callback"
     except Exception:
-        # 3) 无早停
         model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
         return "no_es"
 
