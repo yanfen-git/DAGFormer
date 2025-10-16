@@ -68,6 +68,3 @@ To train DAGFormer on your dataset, you can run the following command:
 
 ```bash
 python main_GT.py --cuda 0 --drug Gefitinib
-
-
-
