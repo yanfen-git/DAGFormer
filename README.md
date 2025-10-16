@@ -8,16 +8,28 @@ Developing computational methods for single-cell drug response prediction deepen
 ![DAGFormer](./my_model.png)
 
 ## Dataset
-The data folder includes different drug data.
+The model utilizes two distinct domains for transfer learning: the **Bulk RNA-seq Source Domain ($\mathbf{D}_S$)** for training knowledge, and the **Single-cell RNA-seq Target Domain ($\mathbf{D}_T$)** for high-resolution prediction.
 
-### Source Domain Data (Bulk RNA-seq)
-- **GDSC (Genomics of Drug Sensitivity in Cancer)** database.
-- Drug sensitivity and resistance data with IC50 values transformed into binary labels.
+### 1. Source Domain ($\mathbf{D}_S$): Bulk $\text{RNA-seq}$ Data
 
-### Target Domain Data (scRNA-seq)
-- Contains single-cell RNA-seq data for predicting drug responses at a high resolution.
+* **Source:** **GDSC (Genomics of Drug Sensitivity in Cancer)** database.
+* **Content:** Contains bulk gene expression profiles and pharmacological response data ($\text{IC}_{50}$ values) across numerous cancer cell lines.
+* **Preprocessing & Labeling:** Continuous $\text{IC}_{50}$ values are transformed into **binary labels** ('sensitive' or 'resistant') using the **LOBIco** algorithm.
 
-The original and preprocessed datasets can be found at:  
+### 2. Target Domain ($\mathbf{D}_T$): Single-cell $\text{RNA-seq}$ Data
+
+The target domain uses $\text{scRNA-seq}$ datasets (from $\text{CCLE}$, $\text{GSE149215}$, and $\text{GSE108383}$) for single-cell drug response prediction. Labels are derived based on the experimental context:
+
+* **Post-treatment Data (Acquired Resistance):**
+    * **Context:** Evaluates cells **after** drug exposure (e.g., Etoposide, PLX4720).
+    * **Labeling:** Parental cells (untreated) are classified as **sensitive cells**; cells that survived drug exposure are categorized as **resistant cells**.
+* **Pre-treatment Data (Inherent Resistance):**
+    * **Context:** Evaluates cells **prior to** drug exposure (e.g., Gefitinib, Sorafenib).
+    * **Labeling:** Cells are labeled based on inferred or established drug-resistance markers, assuming the existence of **pre-existing drug-resistant subpopulations**.
+
+All datasets are preprocessed (including $\text{QC}$, normalization, and $\text{Z}$-score standardization) and filtered to retain **only genes shared between the source and target domains**.
+
+The original and preprocessed datasets can be found at:
 [Google Drive Dataset Link](https://drive.google.com/drive/folders/1y4_xWRmhIs1noyDmWz9CKL1oDWLGkO2Y?usp=drive_link)
 
 
@@ -33,6 +45,23 @@ The original and preprocessed datasets can be found at:
 Experiments were conducted on a workstation equipped with one NVIDIA GeForce RTX 3090 GPU (24 GB VRAM), Intel Xeon 16-core CPU, and 128 GB RAM, running Ubuntu 22.04 LTS with CUDA 12.1 and cuDNN 8.9.
 All models were implemented in Python 3.10 using PyTorch 2.4.1 (CUDA 11.8/12.1 compatible) and DGL 2.4.0+cu121.
 
+## Parameter Settings(Default)
+
+The following default hyperparameter values were used for all benchmarking experiments, as defined in `main_GT.py`. Note that $\lambda_{e}$ and the GRL rate utilize dynamic scheduling.
+
+| Parameter (Argument)                   | Description                                                      | Value                                        |
+|----------------------------------------|------------------------------------------------------------------|----------------------------------------------|
+| Learning Rate (lr)                     | Optimizer initial learning rate                                   | 1e-2                                         |
+| Weight Decay                            | L2 regularization applied to the optimizer                       | 5e-4                                         |
+| Epochs (n_epoch)                       | Total number of training iterations                               | 300                                          |
+| Hidden Dim (hidden)                    | Dimension of the main hidden layer in encoders                    | 512                                          |
+| Feature Dim (gfeat)                    | Dimension of the final latent embedding                           | 128                                          |
+| Dropout Rate (dropout)                 | Dropout rate used in encoders and decoders                        | 0.6                                          |
+| λd (Weight for Domain Adaptation Loss) | Weight for Domain Adaptation Loss (Ldom)                          | 1.0                                          |
+| λr (Weight for Reconstruction Loss)    | Weight for Reconstruction Loss (Lrec)                             | 0.3                                          |
+| λf (Weight for Difference Loss)        | Weight for Difference Loss (Ldiff)                               | 0.0001                                       |
+| Entropy Weight Schedule (λe)           | Weight for Entropy Loss (Lent)                                    | Schedule: epoch/n_epoch × 0.01               |
+| GRL Rate Schedule                      | Gradient Reversal Layer (GRL) factor                              | Schedule: min((epoch+1)/n_epoch, 0.05)       |
 
 ## Training
 To train DAGFormer on your dataset, you can run the following command:
